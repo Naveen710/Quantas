@@ -7,7 +7,7 @@ All thresholds, parameters, and constants for the scanning engine.
 # MARKET UNIVERSE FILTERS
 # ═══════════════════════════════════════════
 MIN_PRICE = 50                    # Minimum stock price in ₹
-MIN_AVG_VOLUME = 500_000          # 5 lakh shares minimum daily average
+MIN_AVG_VOLUME = 200_000          # 2 lakh shares minimum daily average
 DATA_PERIOD_DAILY = "1y"          # 1 year of daily data
 DATA_PERIOD_WEEKLY = "2y"         # 2 years of weekly data
 
@@ -22,9 +22,9 @@ EMA_LONG = 200
 # RSI PARAMETERS
 # ═══════════════════════════════════════════
 RSI_PERIOD = 14
-RSI_LOWER = 55
-RSI_UPPER = 70
-RSI_RISING_CANDLES = 3            # Minimum candles RSI must be rising
+RSI_LOWER = 45
+RSI_UPPER = 75
+RSI_RISING_CANDLES = 2            # Minimum candles RSI must be rising
 RSI_DIVERGENCE_LOOKBACK = 15      # Candles to check for divergence
 
 # ═══════════════════════════════════════════
@@ -32,14 +32,14 @@ RSI_DIVERGENCE_LOOKBACK = 15      # Candles to check for divergence
 # ═══════════════════════════════════════════
 BB_PERIOD = 20
 BB_STD_DEV = 2
-BB_SQUEEZE_PERCENTILE = 20        # Width below this percentile = squeeze
+BB_SQUEEZE_PERCENTILE = 30        # Width below this percentile = squeeze
 
 # ═══════════════════════════════════════════
 # CONSOLIDATION / BREAKOUT
 # ═══════════════════════════════════════════
-CONSOLIDATION_MIN_CANDLES = 15    # Minimum candles for consolidation range
-BREAKOUT_VOLUME_MULTIPLIER = 1.8  # Volume must be ≥ 1.8x 20-day avg
-VOLUME_SUSTAIN_DAYS = 2           # Volume expansion must sustain this many days
+CONSOLIDATION_MIN_CANDLES = 10    # Minimum candles for consolidation range
+BREAKOUT_VOLUME_MULTIPLIER = 1.3  # Volume must be ≥ 1.3x 20-day avg
+VOLUME_SUSTAIN_DAYS = 1           # Volume expansion must sustain this many days
 VOLUME_AVG_PERIOD = 20            # Period for average volume calculation
 
 # ═══════════════════════════════════════════
@@ -69,7 +69,7 @@ MIN_RISK_REWARD = 2.0             # Minimum RR ratio
 # ═══════════════════════════════════════════
 # ALPHA BOOSTERS
 # ═══════════════════════════════════════════
-MIN_ALPHA_BOOSTERS = 2            # Minimum optional criteria to pass
+MIN_ALPHA_BOOSTERS = 1            # Minimum optional criteria to pass
 VWAP_HOLD_CANDLES = 3             # VWAP must hold for 3 candles
 
 # ═══════════════════════════════════════════

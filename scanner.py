@@ -96,31 +96,33 @@ def check_momentum(df: pd.DataFrame) -> tuple[bool, list[str]]:
 def check_volatility_structure(df: pd.DataFrame) -> tuple[bool, list[str], str]:
     """
     Check volatility & breakout criteria:
-    - BB squeeze or volatility contraction
+    - BB squeeze or volatility contraction (preferred but optional if breakout exists)
     - Breakout above swing high or consolidation range
     """
     reasons = []
     pattern = ""
 
-    # Check BB squeeze
-    bb_squeeze = indicators.is_bb_squeeze(df)
-    if not bb_squeeze:
-        # Not a hard fail — check for general volatility contraction
-        bb_width = df["bb_width"].iloc[-1]
-        bb_width_avg = df["bb_width"].iloc[-20:].mean()
-        if bb_width > bb_width_avg:
-            return False, ["No BB squeeze or volatility contraction"], ""
-
-    if bb_squeeze:
-        reasons.append("Bollinger Band squeeze detected (volatility contraction)")
-
-    # Check breakout
+    # Check breakout FIRST — this is the most important criterion
     is_breakout, breakout_pattern = indicators.is_breakout_above_resistance(df)
     if not is_breakout:
         return False, ["No breakout above resistance level"], ""
 
     pattern = breakout_pattern
     reasons.append(f"Pattern: {breakout_pattern}")
+
+    # Check BB squeeze (adds to quality but not required when breakout exists)
+    bb_squeeze = indicators.is_bb_squeeze(df)
+    if bb_squeeze:
+        reasons.append("Bollinger Band squeeze detected (volatility contraction)")
+    else:
+        # Check for general volatility contraction
+        bb_width = df["bb_width"].iloc[-1]
+        bb_width_avg = df["bb_width"].iloc[-20:].mean()
+        if bb_width < bb_width_avg:
+            reasons.append("Volatility contracting (BB width below average)")
+        else:
+            reasons.append("Breakout detected despite expanded volatility")
+
     return True, reasons, pattern
 
 

@@ -31,6 +31,7 @@ CORS(app)
 # ── Alert Cache & Dedup ──
 alert_cache = []
 alert_history = {}  # symbol -> last alert datetime
+scan_failure_stats = {}  # criterion -> count of failures
 scan_status = {
     "running": False,
     "last_scan": None,
@@ -53,12 +54,23 @@ def is_duplicate_alert(symbol: str) -> bool:
 
 def run_scan():
     """Execute the full scan across all stocks in the universe."""
-    global alert_cache, scan_status
+    global alert_cache, scan_status, scan_failure_stats
 
     scan_status["running"] = True
     scan_status["progress"] = 0
     scan_status["errors"] = 0
     alerts = []
+    scan_failure_stats = {
+        "data_fetch": 0,
+        "universe_filter": 0,
+        "Trend Filter": 0,
+        "Weekly Trend": 0,
+        "Momentum": 0,
+        "Volatility/Structure": 0,
+        "Volume": 0,
+        "Alpha Boosters": 0,
+        "risk_reward": 0,
+    }
 
     # Get the stock universe
     universe = data_fetcher.get_stock_universe()
@@ -86,17 +98,22 @@ def run_scan():
 
         # Skip duplicates
         if is_duplicate_alert(symbol):
-            logger.debug(f"Skipping {symbol} (duplicate within {config.DEDUP_WINDOW_DAYS} days)")
             continue
 
         try:
+            # Rate limit: small delay between API calls to avoid yfinance throttling
+            if i > 0 and i % 5 == 0:
+                time.sleep(0.3)
+
             # Fetch daily data
             daily_df = data_fetcher.fetch_daily_data(symbol)
             if daily_df is None:
+                scan_failure_stats["data_fetch"] += 1
                 continue
 
             # Universe filter
             if not data_fetcher.passes_universe_filter(daily_df):
+                scan_failure_stats["universe_filter"] += 1
                 continue
             passed_universe += 1
 
@@ -118,8 +135,15 @@ def run_scan():
                     alert_history[symbol] = datetime.now()
                     passed_all += 1
                     logger.info(f"✅ ALERT: {name} ({symbol}) — Confidence: {alert['confidence']}")
+                else:
+                    scan_failure_stats["risk_reward"] += 1
             else:
-                logger.debug(f"❌ {symbol}: Failed at {result.failed_at}")
+                # Track which criterion failed
+                failed_at = result.failed_at
+                for key in scan_failure_stats:
+                    if key in failed_at:
+                        scan_failure_stats[key] += 1
+                        break
 
         except Exception as e:
             scan_status["errors"] += 1
@@ -138,6 +162,7 @@ def run_scan():
     logger.info(f"═══ Scan complete ═══")
     logger.info(f"    Universe: {total} | Passed filters: {passed_universe} | Scanned: {scanned}")
     logger.info(f"    Alerts generated: {len(alerts)} | Errors: {scan_status['errors']}")
+    logger.info(f"    Failure breakdown: {json.dumps(scan_failure_stats, indent=2)}")
 
     return alerts
 
@@ -218,6 +243,15 @@ def get_sectors():
     universe = data_fetcher.get_stock_universe()
     sectors = sorted(set(s["sector"] for s in universe))
     return jsonify(sectors)
+
+
+@app.route("/api/scan-stats")
+def get_scan_stats():
+    """Get scan failure statistics for debugging."""
+    return jsonify({
+        "failure_breakdown": scan_failure_stats,
+        "scan_status": scan_status,
+    })
 
 
 # ═══════════════════════════════════════════════════════════════
